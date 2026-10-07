@@ -1,0 +1,33 @@
+name: Provide ZIP download for Transkrib 1.2.1
+on:
+  push:
+    paths:
+      - '.github/workflows/zip-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Fetch verified APK, create ZIP and attach to public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=1.2.1
+          tag="transkrib-${version}"
+          mkdir -p download
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern "transkrib-${version}-arm64.apk" \
+            --pattern "SHA256SUMS.txt" --dir download
+          cd download
+          sha256sum --check SHA256SUMS.txt
+          zip -9 "../transkrib-${version}-arm64.zip" \
+            "transkrib-${version}-arm64.apk" SHA256SUMS.txt
+          cd ..
+          gh release upload "$tag" "transkrib-${version}-arm64.zip" \
+            --repo "$GITHUB_REPOSITORY" --clobber
